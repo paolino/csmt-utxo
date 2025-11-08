@@ -1,0 +1,26 @@
+{ pkgs, project, version, rewrite-libs, ... }:
+
+let
+  inherit (pkgs) lib;
+  csmt-utxo = project.packages.csmt-utxo;
+  tarball-derivation = pkgs.stdenv.mkDerivation {
+    pname = "csmt-utxo";
+    inherit version;
+    buildInputs = with pkgs.buildPackages; [ nix ];
+    phases = [ "unpackPhase" "installPhase" ];
+    unpackPhase = ''
+      mkdir -p $out/unpacked
+      cp ${csmt-utxo}/bin/* $out/unpacked
+      ( cd $out/unpacked ;
+        ${rewrite-libs}/bin/rewrite-libs . `ls -1 | grep -Fv .dylib`
+        for a in *; do /usr/bin/codesign -f -s - $a; done
+      )
+      chmod -R +w $out/unpacked/*
+    '';
+    installPhase = ''
+      tar -C $out/unpacked -czvf $out/$pname-$version-darwin64.tar.gz .
+      rm -rf $out/unpacked
+    '';
+  };
+
+in { packages.darwin64.tarball = tarball-derivation; }

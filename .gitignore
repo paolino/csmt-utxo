@@ -1,0 +1,6 @@
+dist-newstyle
+.direnv
+tmp
+secrets
+result
+.cabal-fmt*

@@ -1,0 +1,37 @@
+services:
+  csmt-utxo-proxy:
+    image: ghcr.io/paolino/csmt-utxo/csmt-utxo-proxy:latest
+    container_name: csmt-utxo-proxy
+    restart: unless-stopped
+    secrets:
+      - source: csmt-utxo-proxy-config
+        target: /config.yaml
+    labels:
+      - traefik.docker.network=web
+      - traefik.http.routers.csmt-utxo-proxy.rule=(Host(`csmt-utxo-proxy.plutimus.com`))
+      - traefik.http.routers.csmt-utxo-proxy.tls=true
+      - traefik.http.services.csmt-utxo-proxy.loadbalancer.server.port=8080
+      - traefik.http.routers.csmt-utxo-proxy.tls.certresolver=le
+    networks:
+      - web
+  csmt-utxo-source:
+    image: ghcr.io/paolino/csmt-utxo/csmt-utxo-source:latest
+    container_name: csmt-utxo-source
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    secrets:
+      - source: csmt-utxo-plutimus-config
+        target: /config.yaml
+    depends_on:
+      - csmt-utxo-proxy
+
+secrets:
+  csmt-utxo-proxy-config:
+    file: ../tmp/proxy.yaml
+  csmt-utxo-plutimus-config:
+    file: ../tmp/plutimus.yaml
+
+networks:
+  web:
+    external: true
