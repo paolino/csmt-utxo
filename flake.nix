@@ -7,9 +7,7 @@
   };
   inputs = {
     haskellNix.url = "github:input-output-hk/haskell.nix";
-    nixpkgs = {
-      follows = "haskellNix/nixpkgs-unstable";
-    };
+    nixpkgs = { follows = "haskellNix/nixpkgs-unstable"; };
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-utils.url = "github:hamishmack/flake-utils/hkm/nested-hydraJobs";
   };
