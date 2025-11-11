@@ -91,7 +91,12 @@ library
   -- Modules exported by the library.
   exposed-modules:
     App
-    SMT
+    CSMT
+    CSMT.Backend.Pure
+    CSMT.Hashes
+    CSMT.Insertion
+    CSMT.Interface
+    CSMT.Proofs
 
   -- Modules included in this library but not exported.
   -- other-modules:
@@ -166,4 +171,4 @@ test-suite unit-test
     , QuickCheck
 
   build-tool-depends: hspec-discover:hspec-discover
-  other-modules:      SMTSpec
+  other-modules:      CSMTSpec

@@ -1,27 +1,22 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module SMTSpec (spec)
+module CSMTSpec (spec)
 where
 
--- , mkProof
-
--- , verifyProof
-
-import Data.Functor ((<&>))
-import Data.List (isPrefixOf)
-import Data.Map qualified as Map
-import Data.Map.Strict (Map)
-import SMT
-    ( Direction (..)
+import CSMT
+    ( Direction (L, R)
     , Indirect (..)
     , Key
     , Pure
     , compareKeys
     , inserting
-    , pureInsert
-    , pureQuery
+    , pureCSMT
     , runPure
     )
+import Data.Functor ((<&>))
+import Data.List (isPrefixOf)
+import Data.Map qualified as Map
+import Data.Map.Strict (Map)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Test.QuickCheck (forAll, shuffle)
 import Test.QuickCheck.Gen (Gen, elements)
@@ -30,7 +25,7 @@ mk :: Map Key (Indirect Int) -> Key -> Int -> Map Key (Indirect Int)
 mk m k v = snd $ runPure m $ mkM k v
 
 mkM :: Key -> Int -> Pure Int ()
-mkM = inserting pureQuery pureInsert (+)
+mkM = inserting pureCSMT (+)
 
 -- pfM :: Key -> Pure Int (Maybe (Proof Int))
 -- pfM = mkProof (pureQuery 0)
