@@ -5,6 +5,7 @@ where
 
 import CSMT
     ( Direction (L, R)
+    , InMemoryDB
     , Indirect (..)
     , Key
     , Proof
@@ -16,31 +17,51 @@ import CSMT
     , runPure
     , verifyInclusionProof
     )
-import Data.Foldable (foldl', forM_)
+import CSMT.Hashes (Hash, addHash, mkHash)
+import Data.Foldable (Foldable (..), foldl', forM_)
 import Data.Functor ((<&>))
 import Data.List (isPrefixOf, nub)
+import Data.List.NonEmpty qualified as NE
 import Data.Map qualified as Map
 import Data.Map.Strict (Map)
+import Data.String (IsString (..))
 import Test.Hspec (Spec, describe, it, shouldBe)
-import Test.QuickCheck (forAll, listOf, listOf1, shuffle)
+import Test.QuickCheck
+    ( Property
+    , forAll
+    , listOf
+    , listOf1
+    , shuffle
+    )
 import Test.QuickCheck.Gen (Gen, elements)
 
-mk :: Map Key (Indirect Int) -> Key -> Int -> Map Key (Indirect Int)
-mk m k v = snd $ runPure m $ mkM k v
+mk :: (a -> a -> a) -> InMemoryDB a -> Key -> a -> InMemoryDB a
+mk a m k v = snd $ runPure m $ mkM a k v
 
-mkM :: Key -> Int -> Pure Int ()
-mkM = inserting pureCSMT (+)
+mkInt :: InMemoryDB Int -> Key -> Int -> InMemoryDB Int
+mkInt = mk (+)
 
-pfM :: Key -> Pure Int (Maybe (Proof Int))
+mkM :: (a -> a -> a) -> Key -> a -> Pure a ()
+mkM = inserting pureCSMT
+
+mkMInt :: Key -> Int -> Pure Int ()
+mkMInt = mkM (+)
+
+pfM :: Key -> Pure a (Maybe (Proof a))
 pfM = mkInclusionProof pureCSMT
 
-vpfM :: Key -> Int -> Pure Int Bool
-vpfM k v = do
+vpfM :: Eq a => (a -> a -> a) -> Key -> a -> Pure a Bool
+vpfM a k v = do
     mp <- pfM k
     case mp of
         Nothing -> pure False
-        Just p -> verifyInclusionProof pureCSMT (+) v p
+        Just p -> verifyInclusionProof pureCSMT a v p
 
+vpfMInt :: Key -> Int -> Pure Int Bool
+vpfMInt = vpfM (+)
+
+vpfMHash :: Key -> Hash -> Pure Hash Bool
+vpfMHash = vpfM addHash
 i :: Key -> a -> Indirect a
 i p v = Indirect{jump = p, value = v}
 
@@ -59,28 +80,28 @@ spec = do
     describe "inserting" $ do
         it "inserts 1 key L"
             $ let
-                rs = mk [] [L] (1 :: Int)
+                rs = mkInt [] [L] (1 :: Int)
               in
                 rs `shouldBe` [([], i [L] 1)]
         it "inserts 1 key R"
             $ let
-                rs = mk [] [R] (1 :: Int)
+                rs = mkInt [] [R] (1 :: Int)
               in
                 rs `shouldBe` [([], i [R] 1)]
         it "inserts 1 key LL"
             $ let
-                rs = mk [] [L, L] (1 :: Int)
+                rs = mkInt [] [L, L] (1 :: Int)
               in
                 rs `shouldBe` [([], i [L, L] 1)]
         it "inserts 1 key LR"
             $ let
-                rs = mk [] [R, R] (1 :: Int)
+                rs = mkInt [] [R, R] (1 :: Int)
               in
                 rs `shouldBe` [([], i [R, R] 1)]
         it "inserts 2 keys R and L"
             $ let
-                rs0 = mk [] [L] (1 :: Int)
-                rs1 = mk rs0 [R] (2 :: Int)
+                rs0 = mkInt [] [L] (1 :: Int)
+                rs1 = mkInt rs0 [R] (2 :: Int)
               in
                 rs1
                     `shouldBe` [ ([], i [] 3)
@@ -89,8 +110,8 @@ spec = do
                                ]
         it "inserts 2 keys L and R"
             $ let
-                rs0 = mk [] [R] (2 :: Int)
-                rs1 = mk rs0 [L] (1 :: Int)
+                rs0 = mkInt [] [R] (2 :: Int)
+                rs1 = mkInt rs0 [L] (1 :: Int)
               in
                 rs1
                     `shouldBe` [ ([], i [] 3)
@@ -99,8 +120,8 @@ spec = do
                                ]
         it "inserts 2 keys LL and LR"
             $ let
-                rs0 = mk [] [L, L] (1 :: Int)
-                rs1 = mk rs0 [L, R] (2 :: Int)
+                rs0 = mkInt [] [L, L] (1 :: Int)
+                rs1 = mkInt rs0 [L, R] (2 :: Int)
               in
                 rs1
                     `shouldBe` [ ([], i [L] 3)
@@ -110,8 +131,8 @@ spec = do
 
         it "inserts 2 keys RR and LL"
             $ let
-                rs0 = mk [] [L, L] (1 :: Int)
-                rs1 = mk rs0 [R, R] (2 :: Int)
+                rs0 = mkInt [] [L, L] (1 :: Int)
+                rs1 = mkInt rs0 [R, R] (2 :: Int)
               in
                 rs1
                     `shouldBe` [ ([], i [] 3)
@@ -120,8 +141,8 @@ spec = do
                                ]
         it "inserts 2 keys LR and RL"
             $ let
-                rs0 = mk [] [L, R] (1 :: Int)
-                rs1 = mk rs0 [R, L] (2 :: Int)
+                rs0 = mkInt [] [L, R] (1 :: Int)
+                rs1 = mkInt rs0 [R, L] (2 :: Int)
               in
                 rs1
                     `shouldBe` [ ([], i [] 3)
@@ -130,9 +151,9 @@ spec = do
                                ]
         it "inserts 3 keys LL, RL, LR"
             $ let
-                rs0 = mk [] [L, L] (1 :: Int)
-                rs1 = seq rs0 $ mk rs0 [R, L] (2 :: Int)
-                rs2 = seq rs1 $ mk rs1 [L, R] (3 :: Int)
+                rs0 = mkInt [] [L, L] (1 :: Int)
+                rs1 = seq rs0 $ mkInt rs0 [R, L] (2 :: Int)
+                rs2 = seq rs1 $ mkInt rs1 [L, R] (3 :: Int)
               in
                 rs2
                     `shouldBe` [ ([], i [] 6)
@@ -144,9 +165,9 @@ spec = do
 
         it "inserts 3 keys LL, LR, RL"
             $ let
-                rs0 = mk [] [L, L] (1 :: Int)
-                rs1 = mk rs0 [L, R] (2 :: Int)
-                rs2 = mk rs1 [R, L] (3 :: Int)
+                rs0 = mkInt [] [L, L] (1 :: Int)
+                rs1 = mkInt rs0 [L, R] (2 :: Int)
+                rs2 = mkInt rs1 [R, L] (3 :: Int)
               in
                 rs2
                     `shouldBe` [ ([], i [] 6)
@@ -156,68 +177,88 @@ spec = do
                                , ([L, R], i [] 2)
                                ]
 
-        it "inserting all cover the full tree"
+        it "inserting all leaves populates the full tree"
             $ forAll (elements [1 .. 10])
             $ \n -> forAll (genPaths n) $ \keys -> do
-                let kvs = zip keys [1 .. 2 ^ n]
-                inserted kvs `shouldBe` summed n kvs
+                let kvs = zip keys [1 :: Int .. 2 ^ n]
+                inserted (+) kvs `shouldBe` summed n kvs
 
     describe "proving inclusion" $ do
         it "verifies a simple fact"
             $ let (r, _m) = runPure [] $ do
-                    mkM [L] (1 :: Int)
-                    vpfM [L] 1
+                    mkMInt [L] (1 :: Int)
+                    vpfMInt [L] 1
               in  r `shouldBe` True
         it "verifies a deeper fact"
             $ let (r, _m) = runPure [] $ do
-                    mkM [L, R, L] (42 :: Int)
-                    vpfM [L, R, L] 42
+                    mkMInt [L, R, L] (42 :: Int)
+                    vpfMInt [L, R, L] 42
               in  r `shouldBe` True
         it "verifies a fact with siblings"
             $ let (r, _m) = runPure [] $ do
-                    mkM [L] (10 :: Int)
-                    mkM [R] (20 :: Int)
-                    vpfM [L] 10
+                    mkMInt [L] (10 :: Int)
+                    mkMInt [R] (20 :: Int)
+                    vpfMInt [L] 10
               in  r `shouldBe` True
         it "verifies another fact with siblings"
             $ let (r, _m) = runPure [] $ do
-                    mkM [L, L] (5 :: Int)
-                    mkM [L, R] (15 :: Int)
-                    mkM [R, L] (25 :: Int)
-                    mkM [R, R] (35 :: Int)
-                    vpfM [R, L] 25
+                    mkMInt [L, L] (5 :: Int)
+                    mkMInt [L, R] (15 :: Int)
+                    mkMInt [R, L] (25 :: Int)
+                    mkMInt [R, R] (35 :: Int)
+                    vpfMInt [R, L] 25
               in  r `shouldBe` True
+        let testRandomFactsInAFullTree
+                :: (Int -> a) -> (a -> a -> a) -> (Key -> a -> Pure a Bool) -> Property
+            testRandomFactsInAFullTree h a vpf = forAll (elements [1 .. 14])
+                $ \n -> forAll (listOf $ elements [0 .. 2 ^ n - 1]) $ \ms ->
+                    forAll (genPaths n) $ \keys -> forM_ ms $ \m -> do
+                        let kvs = zip keys $ h <$> [1 .. 2 ^ n]
+                            (testKey, testValue) = kvs !! m
+                            (r, _m) = runPure (inserted a kvs) $ vpf testKey testValue
+                        r `shouldBe` True
         it "verifies random facts in a full tree"
-            $ forAll (elements [1 .. 14])
-            $ \n -> forAll (listOf $ elements [0 .. 2 ^ n - 1]) $ \ms ->
-                forAll (genPaths n) $ \keys -> forM_ ms $ \m -> do
-                    let kvs = zip keys [1 .. 2 ^ n]
-                        (testKey, testValue) = kvs !! m
-                        (r, _m) = runPure (inserted kvs) $ vpfM testKey testValue
-                    r `shouldBe` True
+            $ testRandomFactsInAFullTree id (+) vpfMInt
+        it "verifies random hash facts in a full tree"
+            $ testRandomFactsInAFullTree intHash addHash vpfMHash
+        let testRandomFactsInASparseTree
+                :: (Int -> a) -> (a -> a -> a) -> (Key -> a -> Pure a Bool) -> Property
+            testRandomFactsInASparseTree h a vpf = forAll (elements [128 .. 256])
+                $ \n ->
+                    forAll (genSomePaths n) $ \keys ->
+                        forAll (listOf $ elements [0 .. length keys - 1]) $ \ks ->
+                            forM_ ks $ \m -> do
+                                let kvs = zip keys $ h <$> [1 ..]
+                                    (testKey, testValue) = kvs !! m
+                                    (r, _m) =
+                                        runPure (inserted a kvs)
+                                            $ vpf testKey testValue
+                                r `shouldBe` True
         it "verifies random facts in a sparse tree"
-            $ forAll (elements [128 .. 256])
-            $ \n ->
-                forAll (genSomePaths n) $ \keys ->
-                    forAll (listOf $ elements [0 .. length keys - 1]) $ \ks ->
-                        forM_ ks $ \m -> do
-                            let kvs = zip keys [1 ..]
-                                (testKey, testValue) = kvs !! m
-                                (r, _m) =
-                                    runPure (inserted kvs)
-                                        $ vpfM testKey testValue
-                            r `shouldBe` True
+            $ testRandomFactsInASparseTree id (+) vpfMInt
+        it "verifies random hash facts in a sparse tree"
+            $ testRandomFactsInASparseTree intHash addHash vpfMHash
 
-inserted :: [(Key, Int)] -> Map Key (Indirect Int)
-inserted = foldl' (\m (k, v) -> mk m k v) []
+intHash :: Int -> Hash
+intHash = mkHash . fromString . show
+
+inserted :: Foldable t => (a -> a -> a) -> t (Key, a) -> InMemoryDB a
+inserted a = foldl' (\m (k, v) -> mk a m k v) []
 
 summed :: Int -> [(Key, Int)] -> Map Key (Indirect Int)
 summed n kvs =
     Map.fromList $ allInits n <&> \x ->
         let
-            w = (Map.fromList kvs Map.!)
+            w = (Map.fromList (toList kvs) Map.!)
         in
-            (x, i [] $ foldl' (+) 0 [w p | p <- allPaths n, x `isPrefixOf` p])
+            ( x
+            , i []
+                $ foldl' (+) 0
+                $ NE.fromList
+                $ fmap w
+                $ filter (isPrefixOf x)
+                $ allPaths n
+            )
   where
     allInits :: Int -> [Key]
     allInits 0 = [[]]
@@ -243,45 +284,3 @@ genSomePaths n = fmap nub <$> listOf1 $ do
             ds <- go (c - 1)
             return (d : ds)
     go n
-
--- fact :: Gen (ByteString, ByteString)
--- fact = do
---     k <- B.pack <$> listOf asciiChar
---     v <- B.pack <$> listOf asciiChar
---     return (k, v)
-
--- asciiChar :: Gen Word8
--- asciiChar = choose (32, 126) -- Printable ASCII range
-
--- facts :: Gen [(ByteString, ByteString)]
--- facts = listOf fact
--- describe "Sparse Merkle Tree" $ do
--- it "inserts and retrieves singleton root correctly" $ do
---     let smt  = insert "key1" "value1" emptySMT
---     root smt `shouldBe` Just (mkHash "value1")
--- it "inserts and retrieves multiple keys correctly" $ do
---     let smt1 = insert "key1" "value1" emptySMT
---     let smt2 = insert "key2" "value2" smt1
---     root smt2 `shouldBe` Just (mkHash $ B.concat
---         [ mkHash "value1"
---         , mkHash "value2"
---         , mkHash "value3"
---         ])
--- it "inserts and builds proof correctly"
---     $ property
---     $ forAllShrink
---         facts
---         (pure . drop 1)
---     $ \kvs ->
---         let
---             smt = foldl' (flip $ uncurry insert) emptySMT kvs
---             check (k, v) =
---                 case buildProof k smt of
---                     Nothing -> False
---                     Just proof ->
---                         let rootHash = applyProof v proof
---                         in  case root smt of
---                                 Nothing -> False
---                                 Just rh -> rh == rootHash
---         in
---             all check kvs

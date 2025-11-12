@@ -3,6 +3,7 @@
 module CSMT.Hashes
     ( mkHash
     , addHash
+    , Hash (..)
     )
 where
 
