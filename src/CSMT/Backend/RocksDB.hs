@@ -10,9 +10,9 @@ where
 
 import CSMT.Interface
     ( CSMT (..)
-    , Indirect
-    , Insert
+    , Change
     , Key
+    , Op (..)
     , Query
     )
 
@@ -20,8 +20,9 @@ import CSMT.Backend.RocksDB.Key
 import Control.Monad.Trans.Class (MonadTrans (..))
 import Control.Monad.Trans.Reader (ReaderT (..), ask)
 import Data.ByteArray (ByteArray)
+import Data.ByteString (ByteString)
 import Database.RocksDB
-    ( BatchOp (Put)
+    ( BatchOp (..)
     , Config (..)
     , DB
     , get
@@ -31,29 +32,36 @@ import Database.RocksDB
 
 type RocksDB = ReaderT DB IO
 
+mkKey :: Key -> ByteString
+mkKey = rocksPathKeyToRocksKey . keyToRocksPathKey
+
 rocksDBQuery :: ByteArray a => Query RocksDB a
 rocksDBQuery k = do
-    let rdbk = rocksPathKeyToRocksKey $ keyToRocksPathKey k
+    let rdbk = mkKey k
     db <- ask
     r <- lift $ get db rdbk
     pure $ rocksValueToIndirect <$> r
 
-rocksDBInsert :: ByteArray a => Insert RocksDB a
-rocksDBInsert kvs = do
+rocksDBChange :: ByteArray a => Change RocksDB a
+rocksDBChange kvs = do
     let ops = prepare kvs
     db <- ask
     lift $ write db ops
-
-prepare :: ByteArray a => [(Key, Indirect a)] -> [BatchOp]
-prepare = fmap $ \(k, ind) ->
-    let rdbk = rocksPathKeyToRocksKey $ keyToRocksPathKey k
-        rdbv = indirectToRocksValue ind
-    in  Put rdbk rdbv
+  where
+    prepare :: ByteArray a => [Op a] -> [BatchOp]
+    prepare = fmap $ \case
+        Insert k ind ->
+            let rdbk = mkKey k
+                rdbv = indirectToRocksValue ind
+            in  Put rdbk rdbv
+        Delete k ->
+            let rdbk = mkKey k
+            in  Del rdbk
 
 rocksDBCSMT :: ByteArray a => CSMT RocksDB a
 rocksDBCSMT =
     CSMT
-        { insert = rocksDBInsert
+        { change = rocksDBChange
         , query = rocksDBQuery
         }
 

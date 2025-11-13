@@ -51,6 +51,7 @@ library
     CSMT.Backend.Pure
     CSMT.Backend.RocksDB
     CSMT.Backend.RocksDB.Key
+    CSMT.Deletion
     CSMT.Hashes
     CSMT.Insertion
     CSMT.Interface

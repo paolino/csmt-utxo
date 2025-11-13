@@ -10,7 +10,8 @@ module CSMT.Interface
 
       -- * Interface Types
     , Indirect (..)
-    , Insert
+    , Op (..)
+    , Change
     , Query
     , CSMT (..)
     , fromBool
@@ -50,15 +51,20 @@ data Indirect a = Indirect
     }
     deriving (Show, Eq, Functor)
 
--- | Type alias for an insert function in some monad m. It support batch inserts.
-type Insert m a = [(Key, Indirect a)] -> m ()
+data Op a
+    = Insert Key (Indirect a)
+    | Delete Key
+    deriving (Show, Eq)
+
+-- | Type alias for a change function in some monad m. It support batch inserts.
+type Change m a = [Op a] -> m ()
 
 -- | Type alias for a query function in some monad m.
 type Query m a = Key -> m (Maybe (Indirect a))
 
 -- | The backend interface for a CSMT in some monad m.
 data CSMT m a = CSMT
-    { insert :: Insert m a
+    { change :: Change m a
     , query :: Query m a
     }
 

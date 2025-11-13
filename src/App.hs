@@ -119,7 +119,7 @@ help :: String
 help =
     unlines
         [ "Commands:"
-        , "  i <key> <value>   Insert key-value pair and print inclusion proof"
+        , "  i <key> <value>   Change key-value pair and print inclusion proof"
         , "  q <key>           Query inclusion proof for key"
         , "  v <value>         Verify inclusion proof for the singleton csmt"
         , "  v <value> <proof> Verify inclusion proof for a value"

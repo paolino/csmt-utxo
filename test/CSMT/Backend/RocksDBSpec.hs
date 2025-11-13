@@ -17,7 +17,13 @@ import CSMT.Backend.RocksDB
     , withRocksDB
     )
 import CSMT.Hashes (Hash, addHash, mkHash)
-import CSMT.Interface (Direction (..), Indirect (..), insert, query)
+import CSMT.Interface
+    ( Direction (..)
+    , Indirect (..)
+    , Op (..)
+    , change
+    , query
+    )
 import Control.Monad (forM_)
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.ByteArray (ByteArray)
@@ -93,7 +99,7 @@ spec = around tempDB $ do
         it "can store a csmt node and retrieve it"
             $ \(RunRocksDB run) -> run $ do
                 let v = Indirect{jump = [], value = "test value" :: ByteString}
-                insert rocksDBCSMT [([], v)]
+                change rocksDBCSMT [Insert [] v]
                 r <- rocksDBCSMT `query` []
                 liftIO $ r `shouldBe` Just v
         it "verifies a fact" $ \(RunRocksDB run) -> run $ do

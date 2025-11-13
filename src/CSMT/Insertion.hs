@@ -10,6 +10,7 @@ import CSMT.Interface
     , Direction (..)
     , Indirect (..)
     , Key
+    , Op (..)
     , Query
     , compareKeys
     , opposite
@@ -26,7 +27,7 @@ compose :: Direction -> Key -> Compose a -> Compose a -> Compose a
 compose L j left right = Compose j left right
 compose R j left right = Compose j right left
 
--- | Insert a value into a CSMT
+-- | Change a value into a CSMT
 inserting
     :: Monad m
     => CSMT m a
@@ -43,16 +44,16 @@ inserting (CSMT i q) add key value = do
     i $ snd $ scanCompose add c
 
 -- Scan a Compose tree and produce the resulting hash and list of inserts
-scanCompose :: (a -> a -> a) -> Compose a -> (a, [(Key, Indirect a)])
+scanCompose :: (a -> a -> a) -> Compose a -> (a, [Op a])
 scanCompose add = go []
   where
-    go k (Leaf j h) = (h, [(k, Indirect{jump = j, value = h})])
+    go k (Leaf j h) = (h, [Insert k $ Indirect{jump = j, value = h}])
     go k (Compose j left right) =
         let k' = k <> j
             (hl, ls) = go (k' <> [L]) left
             (hr, rs) = go (k' <> [R]) right
             h = add hl hr
-        in  (h, ls <> rs <> [(k, Indirect j h)])
+        in  (h, ls <> rs <> [Insert k $ Indirect{jump = j, value = h}])
 
 -- Build a Compose tree for inserting a value at a given key
 mkCompose

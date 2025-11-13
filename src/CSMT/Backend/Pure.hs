@@ -11,9 +11,8 @@ where
 import CSMT.Interface
     ( CSMT (..)
     , Indirect
-    , Insert
     , Key
-    , Query
+    , Op (..)
     )
 import Control.Monad.Trans.State.Strict
     ( State
@@ -21,6 +20,7 @@ import Control.Monad.Trans.State.Strict
     , modify'
     , runState
     )
+import Data.Foldable (Foldable (..))
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 
@@ -30,18 +30,16 @@ type InMemoryDB a = Map Key (Indirect a)
 -- | Pure monad for CSMT operations
 type Pure a = State (InMemoryDB a)
 
-pureQuery :: Query (Pure a) a
-pureQuery = gets . Map.lookup
-
-pureInsert :: Insert (Pure a) a
-pureInsert kvs = modify' $ \m -> Map.fromList kvs <> m
-
 runPure :: InMemoryDB a -> State (InMemoryDB a) b -> (b, InMemoryDB a)
 runPure = flip runState
+
+pureChange :: InMemoryDB a -> Op a -> InMemoryDB a
+pureChange m (Insert k v) = Map.insert k v m
+pureChange m (Delete k) = Map.delete k m
 
 pureCSMT :: CSMT (Pure a) a
 pureCSMT =
     CSMT
-        { insert = pureInsert
-        , query = pureQuery
+        { change = \kvs -> modify' $ \m -> foldl' pureChange m kvs
+        , query = gets . Map.lookup
         }

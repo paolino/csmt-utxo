@@ -58,7 +58,7 @@
 
         in {
 
-          packages = fullPackages;
+          packages = fullPackages // { default = fullPackages.csmt-utxo; };
           inherit (project) devShells;
         };
 
