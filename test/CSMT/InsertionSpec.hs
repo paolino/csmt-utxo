@@ -15,7 +15,8 @@ import CSMT.Test.Lib
     )
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Test.QuickCheck
-    ( forAll, shuffle
+    ( forAll
+    , shuffle
     )
 import Test.QuickCheck.Gen (elements)
 

@@ -116,7 +116,6 @@ common unit-test-common
     , QuickCheck
     , temporary
 
-  -- , pretty-simple
   build-tool-depends: hspec-discover:hspec-discover
 
 test-suite unit-test

@@ -23,9 +23,7 @@ data DeletionPath a where
     Value :: Key -> a -> DeletionPath a
     Branch
         :: Key -> Direction -> DeletionPath a -> Indirect a -> DeletionPath a
-
-deriving instance Show a => Show (DeletionPath a)
-deriving instance Eq a => Eq (DeletionPath a)
+    deriving (Show, Eq)
 
 addWithDirection :: (a -> a -> a) -> Direction -> a -> a -> a
 addWithDirection add L left right = add left right
@@ -53,15 +51,18 @@ deletionPathToOps add = snd . go []
                 Just v' ->
                     let h = addWithDirection add d v' (value i)
                     in  ( Just h
-                        , xs <> [Insert k $ Indirect{jump = j, value = h}]
+                        , [Insert k $ Indirect{jump = j, value = h}] <> xs
                         )
                 Nothing ->
                     ( Just (value i)
-                    , xs
-                        <> [ Insert k
-                                $ Indirect{jump = j <> jump i <> [opposite d], value = value i}
-                           , Delete (k <> j <> [opposite d])
-                           ]
+                    , [ Insert k
+                            $ Indirect
+                                { jump = j <> [opposite d] <> jump i
+                                , value = value i
+                                }
+                      , Delete (k <> j <> [opposite d])
+                      ]
+                        <> xs
                     )
 
 newDeletionPath
