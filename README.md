@@ -8,3 +8,21 @@ This package provides:
 - An HTTP service that exposes the CSMT functionalities via a RESTful API, enabling remote interaction with the tree for various applications.
 
 This package does not provide a storage for the preimage of the hashes; it is designed to be storage-agnostic, allowing users to integrate their preferred persistent storage solutions. It will compute the hashes of key and values and store those in the tree, but it is up to the user to manage the actual key-value pairs externally.
+
+## Status
+
+- Library
+  - [x] Insertion
+  - [x] Deletion
+  - [x] Proof generation
+  - [x] Proof verification
+  - [x] Persistent storage backend support
+  - [ ] Comprehensive tests
+- CLI tool
+  - [x] Add elements
+  - [ ] Remove elements
+  - [x] Generate proofs
+  - [x] Verify membership
+- HTTP service
+  - [ ] RESTful API for CSMT operations
+  - [ ] Documentation of API endpoints
