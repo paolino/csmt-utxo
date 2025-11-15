@@ -127,3 +127,12 @@ test-suite unit-tests
     CSMT.InsertionSpec
     CSMT.InterfaceSpec
     CSMT.ProofsSpec
+
+benchmark bench
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench
+  main-is:          main.hs
+  build-depends:
+    , base
+    , miniterion

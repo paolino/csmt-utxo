@@ -50,7 +50,7 @@ in {
   devShells.default = project.shell;
   inherit project;
   packages.csmt = project.hsPkgs.csmt.components.exes.csmt;
-  packages.bench = project.hsPkgs.csmt.components.benchmarks.csmt-bench;
+  packages.bench = project.hsPkgs.csmt.components.benchmarks.bench;
   packages.unit-tests = project.hsPkgs.csmt.components.tests.unit-tests;
   musl64 = project.projectCross.musl64.hsPkgs;
 }
