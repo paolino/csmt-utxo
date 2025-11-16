@@ -17,12 +17,36 @@ This package does not provide a storage for the preimage of the hashes; it is de
   - [x] Proof generation
   - [x] Proof verification
   - [x] Persistent storage backend support
-  - [ ] Comprehensive tests
+  - [x] Comprehensive tests
+  - [x] Insertion benchmarks
+  - [ ] Deletion benchmarks
+  - [ ] Proof generation benchmarks
+  - [ ] Proof verification benchmarks
+  - [ ] Production grade tests
 - CLI tool
   - [x] Add elements
-  - [ ] Remove elements
+  - [x] Remove elements
   - [x] Generate proofs
   - [x] Verify membership
 - HTTP service
   - [ ] RESTful API for CSMT operations
   - [ ] Documentation of API endpoints
+
+## Installation
+
+Currently there is no packaging available. You can clone the repository and build the project using [Cabal](https://www.haskell.org/cabal/):
+
+```bash
+git clone https://github.com/paolino/csmt.git
+cd csmt
+cabal install
+```
+This will install the library, CLI tool.
+
+Nix support is also available. You can build the project using Nix:
+
+```bash
+nix shell github:paolino/csmt --refresh
+```
+
+will drop you in a shell where csmt is built and available.
