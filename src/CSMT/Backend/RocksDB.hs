@@ -39,7 +39,6 @@ import Database.RocksDB
     , DB (columnFamilies)
     , get
     , getCF
-    , withDB
     , withDBCF
     , write
     )
@@ -118,7 +117,7 @@ unsafeWithRocksDB path = do
     dbv <- newEmptyMVar
     done <- newEmptyMVar
     link <=< async $ do
-        withDB path configCSMT $ \db -> do
+        withDBCF path configCSMT [("kv", configKV)] $ \db -> do
             putMVar dbv (RunRocksDB $ flip runReaderT db)
             readMVar wait
         putMVar done ()

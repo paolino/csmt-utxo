@@ -34,7 +34,7 @@ unit match="":
 
 build:
     #!/usr/bin/env bash
-    cabal build all --enable-tests
+    cabal build all --enable-tests --enable-benchmarks
 
 CI:
     #!/usr/bin/env bash
@@ -117,3 +117,7 @@ integration-all:
     set -euo pipefail
     cabal test csmt-integration-test \
         --test-show-details=direct
+
+bench:
+    #!/usr/bin/env bash
+    cabal bench
