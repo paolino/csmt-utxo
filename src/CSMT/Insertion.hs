@@ -42,7 +42,7 @@ inserting
     -> a
     -- ^ Hash to insert
     -> m ()
-inserting (CSMT i q) hashing key value = do
+inserting (CSMT i q _) hashing key value = do
     c <- mkCompose q key value
     i $ snd $ scanCompose hashing c
 

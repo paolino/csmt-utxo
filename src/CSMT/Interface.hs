@@ -89,10 +89,13 @@ type Change m k v a = [Op k v a] -> m ()
 -- | Type alias for a queryCSMT function in some monad m.
 type QueryCSMT m a = Key -> m (Maybe (Indirect a))
 
+type QueryKV m k v = k -> m (Maybe v)
+
 -- | The backend interface for a CSMT in some monad m.
 data CSMT m k v a = CSMT
     { change :: Change m k v a
     , queryCSMT :: QueryCSMT m a
+    , queryKV :: QueryKV m k v
     }
 
 -- | Compare two keys and return their common prefix and the remaining suffixes

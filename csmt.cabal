@@ -97,6 +97,7 @@ library test-lib
   exposed-modules:  CSMT.Test.Lib
   build-depends:
     , base
+    , bytestring
     , csmt
     , QuickCheck
 

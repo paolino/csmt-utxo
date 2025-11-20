@@ -1,10 +1,11 @@
 {-# LANGUAGE StrictData #-}
 
 module CSMT.Backend.Pure
-    ( InMemoryDB
+    ( InMemoryDB (..)
     , Pure
     , runPure
     , pureCSMT
+    , emptyInMemoryDB
     )
 where
 
@@ -25,23 +26,44 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 
 -- | In-memory database type from keys to indirect values
-type InMemoryDB a = Map Key (Indirect a)
+data InMemoryDB k v a = InMemoryDB
+    { inMemoryCSMT :: Map Key (Indirect a)
+    , inMemoryKV :: Map k v
+    }
+    deriving (Show, Eq)
+
+emptyInMemoryDB :: InMemoryDB k v a
+emptyInMemoryDB = InMemoryDB Map.empty Map.empty
+
+onCSMT
+    :: InMemoryDB k v a
+    -> (Map Key (Indirect a) -> Map Key (Indirect a))
+    -> InMemoryDB k v a
+onCSMT m f = m{inMemoryCSMT = f (inMemoryCSMT m)}
+
+onKV :: InMemoryDB k v a -> (Map k v -> Map k v) -> InMemoryDB k v a
+onKV m f = m{inMemoryKV = f (inMemoryKV m)}
 
 -- | Pure monad for CSMT operations
-type Pure a = State (InMemoryDB a)
+type Pure k v a = State (InMemoryDB k v a)
 
-runPure :: InMemoryDB a -> State (InMemoryDB a) b -> (b, InMemoryDB a)
+runPure
+    :: InMemoryDB k v a
+    -> State (InMemoryDB k v a) b
+    -> (b, InMemoryDB k v a)
 runPure = flip runState
 
-pureChange :: InMemoryDB a -> Op k v a -> InMemoryDB a
-pureChange m (InsertCSMT k v) = Map.insert k v m
-pureChange m (DeleteCSMT k) = Map.delete k m
-pureChange m (InsertKV _ _) = m -- Placeholder for KV insert
-pureChange m (DeleteKV _) = m -- Placeholder for KV delete
+pureChange
+    :: Ord k => InMemoryDB k v a -> Op k v a -> InMemoryDB k v a
+pureChange m (InsertCSMT k v) = onCSMT m $ Map.insert k v
+pureChange m (DeleteCSMT k) = onCSMT m $ Map.delete k
+pureChange m (InsertKV k v) = onKV m (Map.insert k v)
+pureChange m (DeleteKV k) = onKV m (Map.delete k)
 
-pureCSMT :: CSMT (Pure a) k v a
+pureCSMT :: Ord k => CSMT (Pure k v a) k v a
 pureCSMT =
     CSMT
         { change = \kvs -> modify' $ \m -> foldl' pureChange m kvs
-        , queryCSMT = gets . Map.lookup
+        , queryCSMT = \k -> gets $ Map.lookup k . inMemoryCSMT
+        , queryKV = \k -> gets $ Map.lookup k . inMemoryKV
         }

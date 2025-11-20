@@ -6,7 +6,9 @@ where
 
 import CSMT
     ( Direction (L, R)
+    , InMemoryDB (inMemoryCSMT)
     , Op (..)
+    , emptyInMemoryDB
     , pureCSMT
     , queryCSMT
     , runPure
@@ -26,6 +28,7 @@ import CSMT.Test.Lib
     , intHashing
     , mkDeletionPath
     )
+import Data.ByteString (ByteString)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import Test.QuickCheck (Gen, elements, forAll, getSize, shuffle)
 
@@ -34,13 +37,13 @@ spec = do
     describe "deletion" $ do
         it "constructs a deletion path for a singleton tree"
             $ let
-                rs0 = insertInt [] [] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [] (1 :: Int)
                 (mp, _) = runPure rs0 $ newDeletionPath (queryCSMT pureCSMT) []
               in
                 mp `shouldBe` Just (Value [] 1)
         it "constructs a deletion path for a tree with siblings"
             $ let
-                rs0 = insertInt [] [L] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [L] (1 :: Int)
                 rs1 = insertInt rs0 [R] (2 :: Int)
                 mp = mkDeletionPath rs1 [L]
               in
@@ -49,14 +52,14 @@ spec = do
                         (Branch [] L (Value [] 1) (indirect [] 2))
         it "constructs a deletion path for a tree with jumps"
             $ let
-                rs0 = insertInt [] [L, L] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [L, L] (1 :: Int)
                 rs1 = insertInt rs0 [L, R] (2 :: Int)
                 mp = mkDeletionPath rs1 [L, L]
               in
                 mp `shouldBe` Just (Branch [L] L (Value [] 1) (indirect [] 2))
         it "constructs a deletion path for a deeper tree with jumps"
             $ let
-                rs0 = insertInt [] [L, L, R] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [L, L, R] (1 :: Int)
                 rs1 = insertInt rs0 [L, R, L] (2 :: Int)
                 rs2 = insertInt rs1 [R, L, R] (3 :: Int)
                 mp0 = mkDeletionPath rs2 [L, L, R]
@@ -103,7 +106,7 @@ spec = do
 
         it "constructs a deletion path for a deeper tree with jumps"
             $ let
-                rs0 = insertInt [] [L, L, L] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [L, L, L] (1 :: Int)
                 rs1 = insertInt rs0 [L, L, R] (2 :: Int)
                 rs2 = insertInt rs1 [R, R, R] (3 :: Int)
                 mp0 = mkDeletionPath rs2 [L, L, L]
@@ -148,26 +151,26 @@ spec = do
 
         it "deletes the singleton tree"
             $ let
-                rs0 = insertInt [] [] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [] (1 :: Int)
                 rs1 = deleteInt rs0 []
               in
-                rs1 `shouldBe` []
+                rs1 `shouldBe` emptyInMemoryDB
         it "deletes a single key"
             $ let
-                rs0 = insertInt [] [L] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [L] (1 :: Int)
                 rs1 = deleteInt rs0 [L]
               in
-                rs1 `shouldBe` []
+                rs1 `shouldBe` emptyInMemoryDB
         it "deletes one of two sibling keys"
             $ let
-                rs0 = insertInt [] [L] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [L] (1 :: Int)
                 rs1 = insertInt rs0 [R] (2 :: Int)
                 rs2 = deleteInt rs1 [R]
               in
                 rs2 `shouldBe` rs0
         it "deletes one of four cousins keys"
             $ let
-                rs0 = insertInt [] [L, L] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [L, L] (1 :: Int)
                 rs1 = insertInt rs0 [L, R] (2 :: Int)
                 rs2 = insertInt rs1 [R, L] (3 :: Int)
                 rs3 = insertInt rs2 [R, R] (4 :: Int)
@@ -177,28 +180,28 @@ spec = do
                 drr = deleteInt rs3 [R, R]
               in
                 do
-                    dll
+                    inMemoryCSMT dll
                         `shouldBe` [ ([], indirect [] 10)
                                    , ([R], indirect [] 7)
                                    , ([L], indirect [R] 2)
                                    , ([R, L], indirect [] 3)
                                    , ([R, R], indirect [] 4)
                                    ]
-                    dlr
+                    inMemoryCSMT dlr
                         `shouldBe` [ ([], indirect [] 8)
                                    , ([R], indirect [] 7)
                                    , ([L], indirect [L] 1)
                                    , ([R, L], indirect [] 3)
                                    , ([R, R], indirect [] 4)
                                    ]
-                    drl
+                    inMemoryCSMT drl
                         `shouldBe` [ ([], indirect [] 8)
                                    , ([L], indirect [] 3)
                                    , ([R], indirect [R] 4)
                                    , ([L, L], indirect [] 1)
                                    , ([L, R], indirect [] 2)
                                    ]
-                    drr
+                    inMemoryCSMT drr
                         `shouldBe` [ ([], indirect [] 6)
                                    , ([L], indirect [] 3)
                                    , ([R], indirect [L] 3)
@@ -207,21 +210,21 @@ spec = do
                                    ]
         it "deletes 2 of four cousin keys"
             $ let
-                rs0 = insertInt [] [L, L] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [L, L] (1 :: Int)
                 rs1 = insertInt rs0 [L, R] (2 :: Int)
                 rs2 = insertInt rs1 [R, L] (3 :: Int)
                 rs3 = insertInt rs2 [R, R] (4 :: Int)
                 dlrl = deleteInt (deleteInt rs3 [L, L]) [R, R]
               in
                 do
-                    dlrl
+                    inMemoryCSMT dlrl
                         `shouldBe` [ ([], indirect [] 6)
                                    , ([L], indirect [R] 2)
                                    , ([R], indirect [L] 3)
                                    ]
         it "deletes 3 of four cousin keys"
             $ let
-                rs0 = insertInt [] [L, L] (1 :: Int)
+                rs0 = insertInt emptyInMemoryDB [L, L] (1 :: Int)
                 rs1 = insertInt rs0 [L, R] (2 :: Int)
                 rs2 = insertInt rs1 [R, L] (3 :: Int)
                 rs3 = insertInt rs2 [R, R] (4 :: Int)
@@ -230,12 +233,12 @@ spec = do
                 dlr = deleteInt drr [L, R]
               in
                 do
-                    dlr
+                    inMemoryCSMT dlr
                         `shouldBe` [ ([], indirect [R, L] 3)
                                    ]
         it "computes the right deletion path for [[L, R], [R, L]]"
             $ let
-                rs0 = mempty
+                rs0 = emptyInMemoryDB
                 rs1 = insertInt rs0 [L, R] (2 :: Int)
                 rs2 = insertInt rs1 [R, L] (3 :: Int)
                 mp = mkDeletionPath rs2 [L, R]
@@ -250,7 +253,7 @@ spec = do
                         )
         it "computes the right ops to delete [L,R] from [[L, R], [R, L]]"
             $ let
-                rs0 = mempty
+                rs0 = emptyInMemoryDB
                 rs1 = insertInt rs0 [L, R] (2 :: Int)
                 rs2 = insertInt rs1 [R, L] (3 :: Int)
                 Just mp = mkDeletionPath rs2 [L, R]
@@ -267,9 +270,9 @@ spec = do
             $ \n -> forAll (randomPaths n) $ \(inserting, deleting) -> do
                 let
                     kvs = zip inserting [1 :: Int .. 2 ^ n]
-                    full = inserted intHashing kvs
+                    full = inserted @_ @ByteString intHashing kvs
                     emptied = foldl deleteInt full deleting
-                emptied `shouldBe` []
+                emptied `shouldBe` emptyInMemoryDB @_ @ByteString
 
 randomPaths :: Int -> Gen ([Key], [Key])
 randomPaths k = do

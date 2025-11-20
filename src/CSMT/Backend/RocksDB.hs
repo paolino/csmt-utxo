@@ -81,6 +81,7 @@ rocksDBCSMT =
     CSMT
         { change = rocksDBChange
         , queryCSMT = rocksDBQuery
+        , queryKV = \_ -> pure Nothing
         }
 
 newtype RunRocksDB = RunRocksDB (forall a. RocksDB a -> IO a)
