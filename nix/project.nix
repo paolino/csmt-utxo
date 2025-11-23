@@ -1,4 +1,4 @@
-{ indexState, pkgs, ... }:
+{ indexState, pkgs, mkdocs, ... }:
 
 let
   libOverlay = { lib, pkgs, ... }: { };
@@ -19,6 +19,10 @@ let
       pkgs.just
       pkgs.nixfmt-classic
       pkgs.shellcheck
+      pkgs.mkdocs
+      mkdocs.mkdocs-asciinema-player
+      mkdocs.mkdocs-markdown-callouts
+      pkgs.asciinema
 
     ];
     shellHook = ''

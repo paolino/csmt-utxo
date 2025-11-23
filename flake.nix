@@ -10,9 +10,10 @@
     nixpkgs = { follows = "haskellNix/nixpkgs-unstable"; };
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-utils.url = "github:hamishmack/flake-utils/hkm/nested-hydraJobs";
+    mkdocs.url = "github:paolino/dev-assets?dir=mkdocs";
   };
 
-  outputs = inputs@{ self, nixpkgs, flake-utils, haskellNix, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-utils, haskellNix, mkdocs, ... }:
     let
       lib = nixpkgs.lib;
       version = self.dirtyShortRev or self.shortRev;
@@ -32,6 +33,7 @@
           project = import ./nix/project.nix {
             indexState = "2025-08-07T00:00:00Z";
             inherit pkgs;
+            mkdocs = mkdocs.packages.${system};
           };
 
           linux-artifacts =

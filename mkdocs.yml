@@ -1,0 +1,13 @@
+site_name: CSMT Documentation
+site_url: https://paolino.github.io/csmt/
+repo_url: https://github.com/paolino/csmt
+
+theme:
+  name: readthedocs
+
+plugins:
+  - search
+  - asciinema-player
+
+markdown_extensions:
+  - callouts
