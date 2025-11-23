@@ -46,6 +46,7 @@ This will install the library, CLI tool.
 Nix support is also available. You can build the project using Nix:
 
 ```bash
+nix shell nixpkgs#cachix -c cachix use paolino
 nix shell github:paolino/csmt --refresh
 ```
 
