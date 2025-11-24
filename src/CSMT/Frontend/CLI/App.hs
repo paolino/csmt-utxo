@@ -65,6 +65,8 @@ data Command
       W ByteString
     | -- | Query root hash
       R
+    | -- | Comment
+      C
 
 parseCommand :: ByteString -> Maybe Command
 parseCommand line =
@@ -76,6 +78,7 @@ parseCommand line =
         ["v", value] -> Just (V value "")
         ["v", value, proof] -> Just (V value proof)
         ["r"] -> Just R
+        "#" : _comment -> Just C
         _ -> Nothing
 
 printHash :: ByteString -> ByteString -> IO ()
@@ -127,6 +130,7 @@ core isPiped (RunRocksDB run) l' = case parseCommand $ BC.pack l' of
         case mv of
             Just v -> BC.putStrLn v
             Nothing -> putStrLn "Key not found"
+    Just C -> return ()
     Nothing -> putStrLn helpInteractive
 
 newtype Options = Options
@@ -180,9 +184,10 @@ helpInteractive =
         [ "Commands:"
         , "  i <key> <value>   Change key-value pair and print inclusion proof"
         , "  w <key>           Query value for key"
-        , "  d <key>           DeleteCSMT key and print exclusion proof (soon)"
-        , "  q <key>           QueryCSMT inclusion proof for key"
+        , "  d <key>           Delete key and print exclusion proof (soon)"
+        , "  q <key>           Query inclusion proof for key"
         , "  v <value>         Verify inclusion proof for the singleton csmt"
         , "  v <value> <proof> Verify inclusion proof for a value"
         , "  r                 Print root hash of the tree"
+        , "  # <comment>       Add comment line (no operation)"
         ]
