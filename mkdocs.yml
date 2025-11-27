@@ -19,8 +19,33 @@ plugins:
 
 markdown_extensions:
   - callouts
+  - tables
+  - footnotes
   - mkdocs_graphviz
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      options:
+        attributes:
+          align: "absmiddle"
+          height: "20px"
+          width: "20px"
 
 nav:
   - Home: index.md
   - Architecture: architecture.md
+  - Manual: manual.md
