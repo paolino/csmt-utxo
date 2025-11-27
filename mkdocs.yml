@@ -15,37 +15,32 @@ theme:
 plugins:
   - search
   - asciinema-player
-  - mermaid2
 
 markdown_extensions:
   - callouts
   - tables
   - footnotes
+  - def_list
   - mkdocs_graphviz
-  - pymdownx.critic
-  - pymdownx.caret
-  - pymdownx.keys
-  - pymdownx.mark
-  - pymdownx.tilde
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
+  - pymdownx.highlight
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-      options:
-        attributes:
-          align: "absmiddle"
-          height: "20px"
-          width: "20px"
+  - pymdownx.tasklist:
+      custom_checkbox: true
 
 nav:
   - Home: index.md
-  - Architecture: architecture.md
+  - Architecture:
+    - architecture.md
+    - Partial keys: partial-keys.md
   - Manual: manual.md
